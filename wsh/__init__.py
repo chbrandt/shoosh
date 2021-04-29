@@ -39,3 +39,7 @@ from any Python `reserved keywords`_ such as ``from``; You *cannot* call:
 from ._sh import Sh as Wsh
 wsh = Wsh()
 
+
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
