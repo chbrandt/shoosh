@@ -3,6 +3,22 @@ from sh import docker, awk, tail
 from . import _log as log
 
 
+def bake_container(name):
+    """
+    Return a Bash login shell from "inside" container 'name'
+
+    "Inside" means it will exec whatever (wrapped) command from inside the
+    (docker) container in a Bash login shell.
+    """
+    from sh import docker
+    _exec_ = "exec -t {name!s} bash --login -c"
+    if name not in list_containers():
+        # TODO: together with an option "autorun", start/run container if not yet.
+        raise ValueError
+    dsh = docker.bake(_exec_.format(name=name).split())
+    return dsh
+
+
 def containers():
     """
     Return list of container (names) instanciated

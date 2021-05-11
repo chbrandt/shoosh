@@ -1,6 +1,9 @@
 from . import _log as log
 
-from ._docker import containers as list_containers
+try:
+    import wsh._docker as docker
+except:
+    docker = None
 
 
 class Sh(object):
@@ -63,9 +66,12 @@ class Sh(object):
                 or a dictionary where keys are labels/args and values the tuples:
                 `` { 'arg': ('path_in_host', 'path_in_container') } ``
         """
-        assert name in list_containers()
-        self._sh = _set_sh_docker(name)
-        self._maps = mappings
+        if docker:
+            assert name in docker.list_containers()
+            self._sh = docker.bake_container(name)
+            self._maps = mappings
+        else:
+            self.log("Docker is not defined.")
 
     def wrap(self, exec):
         """
@@ -87,22 +93,6 @@ def _set_sh():
     """
     from sh import bash
     return bash.bake('--login -c'.split())
-
-
-def _set_sh_docker(name):
-    """
-    Return a Bash login shell from "inside" container 'name'
-
-    "Inside" means it will exec whatever (wrapped) command from inside the
-    (docker) container in a Bash login shell.
-    """
-    from sh import docker
-    _exec_ = "exec -t {name!s} bash --login -c"
-    if name not in list_containers():
-        # TODO: together with an option "autorun", start/run container if not yet.
-        raise ValueError
-    dsh = docker.bake(_exec_.format(name=name).split())
-    return dsh
 
 
 def _map_args(args, map_paths):
