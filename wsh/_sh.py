@@ -1,6 +1,9 @@
-from . import _log as log
+from . import log
 
-from ._docker import containers as list_containers
+try:
+    import wsh._docker as docker
+except:
+    docker = None
 
 
 class Sh(object):
@@ -63,9 +66,12 @@ class Sh(object):
                 or a dictionary where keys are labels/args and values the tuples:
                 `` { 'arg': ('path_in_host', 'path_in_container') } ``
         """
-        assert name in list_containers()
-        self._sh = _set_sh_docker(name)
-        self._maps = mappings
+        if docker:
+            assert name in docker.list_containers()
+            self._sh = docker.bake_container(name)
+            self._maps = mappings
+        else:
+            self.log("Docker is not defined.")
 
     def wrap(self, exec):
         """
@@ -89,22 +95,6 @@ def _set_sh():
     return bash.bake('--login -c'.split())
 
 
-def _set_sh_docker(name):
-    """
-    Return a Bash login shell from "inside" container 'name'
-
-    "Inside" means it will exec whatever (wrapped) command from inside the
-    (docker) container in a Bash login shell.
-    """
-    from sh import docker
-    _exec_ = "exec -t {name!s} bash --login -c"
-    if name not in list_containers():
-        # TODO: together with an option "autorun", start/run container if not yet.
-        raise ValueError
-    dsh = docker.bake(_exec_.format(name=name).split())
-    return dsh
-
-
 def _map_args(args, map_paths):
     """
     Translate 'args' according to 'map_paths'
@@ -120,11 +110,59 @@ def _map_args(args, map_paths):
     """
     log.debug(args)
     log.debug(map_paths)
+
+    map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
+
     _args = []
-    for arg in args:
-        for _host,_cont in map_paths.values():
-            arg = arg.replace(_host, _cont)
-        _args.append(arg)
+    for val in args:
+        for _host, _cont in map_tuples:
+            _val = val.replace(_host, _cont)
+            if _val != val:
+                break
+        _args.append(_val)
+
+    # maps = map_paths
+    # _args = []
+    # # for arg in args:
+    # #     for _host,_cont in map_paths.values():
+    # #         arg = arg.replace(_host, _cont)
+    # #     _args.append(arg)
+    # # return _args
+    # if isinstance(maps, dict):
+    #     for val in args:
+    #         try:
+    #             # Try for the mapping "{ 'infile': ('/Volumes/at_host', '/mnt/at_container') }"
+    #             _host = maps[key][0]
+    #             _cont = maps[key][1]
+    #         except Exception as err:
+    #             log.error(err)
+    #             # If not -- either because 'key' doesn't exist or value is not a tuple --
+    #             # just pass key:val forward.
+    #             _val = val
+    #         else:
+    #             # Translate path from host URL to container's reference.
+    #             _val = val.replace(_host, _cont)
+    #
+    #         _args.append(_val)
+    #
+    # elif isinstance(maps, (list,tuple)):
+    #     for val in args:
+    #         try:
+    #             _host, _cont = maps
+    #         except Exception as err:
+    #             log.error(err)
+    #             _val = val
+    #         else:
+    #             # Translate path from host URL to container's reference.
+    #             _val = val.replace(_host, _cont)
+    #
+    #         _args.append(_val)
+    #
+    # else:
+    #     # If there is no map defined (for some fucking reason), just map trivially
+    #     # _kw.update(kwargs)
+    #     assert False, "Mapping paths should be defined. This line should never be hit!"
+
     return _args
 
 
@@ -152,36 +190,52 @@ def _map_kwargs(kwargs, map_paths):
     log.debug(kwargs)
     log.debug(map_paths)
 
-    maps = map_paths
+    map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
+
     _kw = {}
-    if isinstance(maps, dict):
-        for key, val in kwargs.items():
-            try:
-                # Try for the mapping "{ 'infile': ('/Volumes/at_host', '/mnt/at_container') }"
-                basepath_host = maps[key][0]
-                basepath_cont = maps[key][1]
-            except:
-                # If not -- either because 'key' doesn't exist or value is not a tuple --
-                # just pass key:val forward.
-                _kw[key] = val
-            else:
-                # Translate path from host URL to container's reference.
-                _val = val.replace(basepath_host, basepath_cont)
-                _kw[key] = _val
-    elif isinstance(maps, (list,tuple)):
-        for key, val in kwargs.items():
-            try:
-                basepath_host, basepath_cont = maps
-            except:
-                _kw[key] = val
-            else:
-                # Translate path from host URL to container's reference.
-                _val = val.replace(basepath_host, basepath_cont)
-                _kw[key] = _val
-    else:
-        # If there is no map defined (for some fucking reason), just map trivially
-        # _kw.update(kwargs)
-        assert False, "Mapping paths should be defined. This line should never be hit!"
+    for key, val in kwargs.items():
+        for _host, _cont in map_tuples:
+            _val = val.replace(_host, _cont)
+            if _val != val:
+                break
+        _kw[key] = _val
+
+    # maps = map_paths
+    # _kw = {}
+    # if isinstance(maps, dict):
+    #     for key, val in kwargs.items():
+    #         try:
+    #             # Try for the mapping "{ 'infile': ('/Volumes/at_host', '/mnt/at_container') }"
+    #             _host = maps[key][0]
+    #             _cont = maps[key][1]
+    #         except Exception as err:
+    #             log.error(err)
+    #             # If not -- either because 'key' doesn't exist or value is not a tuple --
+    #             # just pass key:val forward.
+    #             _val = val
+    #         else:
+    #             # Translate path from host URL to container's reference.
+    #             _val = val.replace(_host, _cont)
+    #
+    #         _kw[key] = _val
+    #
+    # elif isinstance(maps, (list,tuple)):
+    #     for key, val in kwargs.items():
+    #         try:
+    #             _host, _cont = maps
+    #         except Exception as err:
+    #             log.error(err)
+    #             _val = val
+    #         else:
+    #             # Translate path from host URL to container's reference.
+    #             _val = val.replace(_host, _cont)
+    #
+    #         _kw[key] = _val
+    #
+    # else:
+    #     # If there is no map defined (for some fucking reason), just map trivially
+    #     # _kw.update(kwargs)
+    #     assert False, "Mapping paths should be defined. This line should never be hit!"
 
     return _kw
 
