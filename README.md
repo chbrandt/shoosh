@@ -10,9 +10,10 @@ meant to manage the containers lifecycle.)
 
 For example, let's run a simple [alpine](https://hub.docker.com/_/alpine) container mapping local `test/` directory to `/some/path` inside the container:
 ```bash
-$ docker --name some_container \
-         -v /tmp/test:/some/path \
-         alpine
+$ docker run -dt \
+        --name some_container \
+        -v /tmp/test:/some/path \
+        debian
 ```
 
 ### 2: Create a handle to container
