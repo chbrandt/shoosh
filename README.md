@@ -1,5 +1,34 @@
-# PCSh
+# wsh
 Wrapper for sh to run Shell commands inside Docker container and handle volume mappings seamlessly.
+
+## How to
+
+### 1: Instantiate a container
+First step is to instantiate the (Docker) container we are going to use next.
+(You'll use whatever method/interface you're used to do it; the lib is _not_
+meant to manage the containers lifecycle.)
+
+For example, let's run a simple [alpine](https://hub.docker.com/_/alpine) container mapping local `test/` directory to `/some/path` inside the container:
+```bash
+$ docker --name some_container \
+         -v /tmp/test:/some/path \
+         alpine
+```
+
+### 2: Create a handle to container
+Then, we create a handle to the container whit the volume(s) set:
+```python
+>>> import wsh
+>>> sh = wsh.get_handle('some_container')
+```
+
+### 3: And execute a command through the handle
+By default, whenever you cite the (host) volume, it translate to the internal path:
+```python
+>>> echo = sh.wrap('echo')
+>>> echo("Internal path:", '/tmp/test')
+Internal path: /some/path
+```
 
 ## Rationale
 The typical use of (Docker) containers is to spin-up a container containing
