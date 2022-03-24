@@ -20,7 +20,7 @@ $ docker run -dt \
 Then, we create a handle to the container whit the volume(s) set:
 ```python
 >>> import wsh
->>> sh = wsh.get_handle('some_container')
+>>> sh = wsh.init('some_container')
 ```
 
 ### 3: And execute a command through the handle

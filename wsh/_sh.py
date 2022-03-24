@@ -9,7 +9,7 @@ except:
 KWARGS_SEP = '='
 
 
-class Sh(object):
+class Wsh(object):
     """
     Class meant to abstract the underlying Shell/OS layer
 
@@ -53,7 +53,7 @@ class Sh(object):
         self._maps = None
 
     @staticmethod
-    def log(res):
+    def _log(res):
         log.debug("Exit code: "+str(res and res.exit_code))
 
     def set_docker(self, container, mappings=None, inspect=False):
@@ -79,7 +79,7 @@ class Sh(object):
                 mappings = tuple(mappings)
             self._maps = {type(mappings): mappings}
         else:
-            self.log("Docker not found. Do you have it installed?")
+            self._log("Docker not found. Do you have it installed?")
 
     def wrap(self, exec):
         """
@@ -125,6 +125,19 @@ class Sh(object):
 
 
 def _map_arg(value, maps):
+    """
+    Return mapped 'value' if mapping found in 'maps'
+
+    Input:
+        value: str
+            Path (string) in the host system
+            Ex: '/host/path/something'
+        maps: list
+            List of length-2 tuples [('/host/path','/container/path')]
+
+    Output:
+        Mapped value. Ex: '/container/path/something'
+    """
     from os.path import exists,abspath
 
     if maps and exists(value):
@@ -138,11 +151,17 @@ def _map_arg(value, maps):
 
 
 def _map_kwarg_t(key, value, maps, sep):
+    """
+    Return keyword value mapped using separator 'sep'
+    """
     _val = _map_arg(value, maps)
     return f"{key}{sep}{_val}"
 
 
 def _map_kwarg_d(key, value, maps, sep):
+    """
+    Return keyword value mapped using separator 'sep'
+    """
     _maps = maps and [maps]
     return _map_kwarg_t(key, value, _maps, sep)
 
@@ -153,75 +172,3 @@ def _set_sh():
     """
     from sh import bash
     return bash.bake('--login -c'.split())
-
-
-# def _map_args(args, map_paths):
-#     """
-#     Translate 'args' according to 'map_paths'
-#
-#     'args' is like:
-#     ```
-#     ['dummy-arg', '/Volumes/at_host/bla.txt']
-#     ```
-#     And 'map_paths' (given at 'Sh.set_docker()') is like:
-#     ```
-#     { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
-#     ```.
-#     """
-#     import re
-#
-#     log.debug(args)
-#     log.debug(map_paths)
-#
-#     map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
-#     assert False
-#     _args = []
-#     for val in args:
-#         for _host, _cont in map_tuples:
-#             # use str.replace to substitute wherever '_host' is in the string
-#             _val = val.replace(_host, _cont)
-#             # re.sub to substitute only when '_host' strats ('^') the string
-#             # _val = re.sub(f"^{_host}", _cont, val)
-#             if _val != val:
-#                 break
-#         _args.append(_val)
-#
-#     return _args
-#
-#
-# def _map_kwargs(kwargs, map_paths):
-#     """
-#     Translate 'kwargs' values according to 'map_paths' mappings
-#
-#     'kwargs' is something like:
-#     ```
-#     { 'infile' : '/Volumes/at_host/bla.txt' }
-#     ```.
-#
-#     And 'map_paths' (given at 'Sh.set_docker()') is like:
-#     # ```
-#     # TODO: implement this format!
-#     # { '/Volumes/at_host' : '/mnt/at_container' }
-#     # ```
-#     # or
-#     ```
-#     { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
-#     ```.
-#     The second form is used only when you want to restrict such mapping/translation
-#     to a specific command-line argument
-#     """
-#     log.debug(kwargs)
-#     log.debug(map_paths)
-#
-#     map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
-#
-#     _kw = {}
-#     for key, val in kwargs.items():
-#         for _host, _cont in map_tuples:
-#             _val = val.replace(_host, _cont)
-#             if _val != val:
-#                 break
-#         _kw[key] = _val
-#
-#     return _kw
-#
