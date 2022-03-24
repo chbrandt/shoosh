@@ -5,19 +5,19 @@ from sh import docker, awk, tail
 from . import _log as log
 
 
-def bake_container(name):
+def bake(container):
     """
     Return a Bash login shell from "inside" container 'name'
 
     "Inside" means it will exec whatever (wrapped) command from inside the
     (docker) container in a Bash login shell.
     """
-    _exec_ = "exec -t {name!s} bash --login -c"
-    if name not in list_containers():
+    exec_ = "exec -t {container!s} bash --login -c"
+    if container not in list_containers():
         # TODO: together with an option "autorun", start/run container if not yet.
         raise ValueError
-    dsh = docker.bake(_exec_.format(name=name).split())
-    return dsh
+    sh_ = docker.bake(exec_.format(container=container).split())
+    return sh_
 
 
 def containers():
@@ -50,14 +50,16 @@ def restart(name):
 container_restart = restart
 
 
-def container_volumes(name):
+def volumes(container:str) -> list:
     """
     Return container volume pairs
     """
     buf = StringIO()
-    docker('inspect', '-f', "'{{json .Mounts}}'", 'some_container', _out=buf)
+    docker('inspect', '-f', "'{{json .Mounts}}'", container, _out=buf)
     res = buf.getvalue().strip()
     vols_list = json.loads(res[1:-1])
     # vols = {d['Source']:d['Destination'] for d in vols_list}
     vols = [(d['Source'],d['Destination']) for d in vols_list]
     return vols
+
+container_volumes = volumes
