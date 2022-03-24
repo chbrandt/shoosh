@@ -103,10 +103,10 @@ class Sh(object):
             v = [ _map_arg(v, _maps_t) for v in args ]
             _maps_d = self._maps.get(dict, None)
             if _maps_d:
-                kv = [ _map_kwarg(k, v, _maps_d.get(k), self._kwargs_sep)
+                kv = [ _map_kwarg_d(k, v, _maps_d.get(k), self._kwargs_sep)
                         for k,v in kwargs.items() ]
             else:
-                kv = [ _map_kwarg(k, v, _maps_t, self._kwargs_sep)
+                kv = [ _map_kwarg_t(k, v, _maps_t, self._kwargs_sep)
                         for k,v in kwargs.items() ]
 
             # 'comm' is effectively the full/command-line to run
@@ -137,8 +137,13 @@ def _map_arg(value, maps):
     return value
 
 
-def _map_kwarg(key, value, maps, sep='='):
+def _map_kwarg_d(key, value, maps, sep='='):
     _val = _map_arg(value, [maps]) if maps else value
+    return f"{key}{sep}{_val}"
+
+
+def _map_kwarg_t(key, value, maps, sep='='):
+    _val = _map_arg(value, maps) if maps else value
     return f"{key}{sep}{_val}"
 
 
