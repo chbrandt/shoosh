@@ -1,9 +1,10 @@
 from . import log
 
 try:
-    import wsh._docker as docker
+    from . import _docker as docker
 except:
     docker = None
+
 
 
 class Sh(object):
@@ -28,17 +29,25 @@ class Sh(object):
     """
     _sh = None
     _maps = None
+    _name = None
+    _kwargs_sep = '='
 
-    def __init__(self):
+    def __init__(self, name:str=None):
+        self._name = name
         self.reset()
 
-    def __call__(self, *args, **kwargs):
-        log.debug(args)
-        log.debug(kwargs)
-        if self._maps:
-            args = _map_args(args, self._maps)
-            kwargs = _map_kwargs(kwargs, self._maps)
-        return self._sh(*args, **kwargs)
+    def __call__(self, command):
+        log.debug(command)
+    #     log.debug(args)
+    #     log.debug(kwargs)
+    #     # This code grew wrong here, kwargs is empty and args is *one* string actually
+    #     # XXX: the 'join' done by _wrap()._sh() function/enclosure is messing what should come next
+    #     assert len(kwargs)==0
+    #     if self._maps:
+    #         args = _map_args(args, self._maps)
+    #         kwargs = _map_kwargs(kwargs, self._maps)
+    #     return self._sh(*args, **kwargs)
+        return self._sh(command)
 
     def reset(self):
         """
@@ -53,12 +62,12 @@ class Sh(object):
     def log(res):
         log.debug("Exit code: "+str(res and res.exit_code))
 
-    def set_docker(self, name, mappings=None, inspect=False):
+    def set_docker(self, container, mappings=None, inspect=False):
         """
-        Set running container 'name' to handle exec/commands
+        Set running 'container' to handle exec/commands
 
         Input:
-            name: string
+            container: string
                 Name of a running container
             mappings: list, dictionary
                 Either a list/tuple mapping host to container paths,
@@ -67,24 +76,68 @@ class Sh(object):
                 `` { 'arg': ('path_in_host', 'path_in_container') } ``
         """
         if docker:
-            assert name in docker.list_containers()
-            self._sh = docker.bake_container(name)
-            self._maps = mappings
+            assert container in docker.list_containers()
+            self._sh = docker.bake(container)
+            if inspect and not mappings:
+                mappings = docker.volumes(container)
+            assert type(mappings) in (list,tuple,dict)
+            if isinstance(mappings, list):
+                mappings = tuple(mappings)
+            self._maps = {type(mappings): mappings}
         else:
-            self.log("Docker is not defined.")
+            self.log("Docker not found. Do you have it installed?")
 
     def wrap(self, exec):
         """
         Return a callable wrapping command 'exec'
 
-        This callable (really just a closure around Bash) accepts *any*
+        This callable (really just a closure around Sh/Bash) accepts *any*
         argument(s) or kw-argument(s) you feel like running 'exec' with.
 
         Input:
             * exec : str
                 Command name to wrap (e.g, "echo")
         """
-        return _wrap(exec, sh_local=self)
+        if isinstance(exec, str):
+            exec = [exec]
+
+        def _sh(*args, **kwargs):
+            """
+            Run and return result of 'exec' in 'sh_local' with argument 'args/kwargs'
+            """
+            v = [ _map_arg(v, self._maps[tuple]) for v in args ]
+            kv = [ _map_kwarg(k, v, self.maps[dict], self._kwargs_sep)
+                    for k,v in kwargs.items() ]
+            comm = ' '.join(exec+v+kv)
+            log.debug(comm)
+            # 'comm' is effectively the full/command-line to run
+            return self(comm)
+
+        return _sh
+
+    @property
+    def mappings(self):
+        """
+        Return list of volumes/mappings currently set
+        """
+        #TODO
+        NotImplementedError
+
+
+def _map_arg(value, maps):
+    from os.path import exists,abspath
+    if exists(value):
+        _abs = abspath(value)
+        for _host, _cont in maps:
+            _val = _abs.replace(_host, _cont)
+            if _val != _abs:
+                return _val
+    return value
+
+
+
+def _map_kwarg(key, value, maps, sep='='):
+    return f"{key}{sep}{value}"
 
 
 def _set_sh():
@@ -108,15 +161,20 @@ def _map_args(args, map_paths):
     { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
     ```.
     """
+    import re
+
     log.debug(args)
     log.debug(map_paths)
 
     map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
-
+    assert False
     _args = []
     for val in args:
         for _host, _cont in map_tuples:
+            # use str.replace to substitute wherever '_host' is in the string
             _val = val.replace(_host, _cont)
+            # re.sub to substitute only when '_host' strats ('^') the string
+            # _val = re.sub(f"^{_host}", _cont, val)
             if _val != val:
                 break
         _args.append(_val)
@@ -238,39 +296,6 @@ def _map_kwargs(kwargs, map_paths):
     #     assert False, "Mapping paths should be defined. This line should never be hit!"
 
     return _kw
-
-
-def _wrap(exec, sh_local, log=log):
-    """
-    Return 'sh' to be called with arguments to 'exec'
-
-    The wrapped 'sh' reports to log.debug and parse the (future) arguments
-    to build a string for sh('exec <future-args>').
-
-    Input:
-        * exec: string
-            command to execute by the container
-        * sh_local: Sh
-        * log: logging-handler
-
-    Output:
-        Return callable/function closure with 'exec' wrapped
-    """
-    if isinstance(exec, str):
-        exec = [exec]
-
-    def _sh(*args,**kwargs):
-        """
-        Run and return result of 'exec' in 'sh_local' with argument 'args/kwargs'
-        """
-        v = [f'{v}' for v in args]
-        kv = [f'{k}={v}' for k,v in kwargs.items()]
-        comm = ' '.join(exec+v+kv)
-        log.debug(comm)
-        # 'comm' is effectively the full/command-line to run
-        return sh_local(comm)
-
-    return _sh
 
 
 # # Global/Singleton
