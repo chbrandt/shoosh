@@ -6,6 +6,8 @@ except:
     docker = None
 
 
+KWARGS_SEP = '='
+
 
 class Sh(object):
     """
@@ -30,23 +32,15 @@ class Sh(object):
     _sh = None
     _maps = None
     _name = None
-    _kwargs_sep = '='
+    _kwargs_sep = None
 
-    def __init__(self, name:str=None):
+    def __init__(self, name:str=None, kwargs_sep:str=KWARGS_SEP):
         self._name = name
+        self._kwargs_sep = kwargs_sep
         self.reset()
 
     def __call__(self, command):
         log.debug(command)
-    #     log.debug(args)
-    #     log.debug(kwargs)
-    #     # This code grew wrong here, kwargs is empty and args is *one* string actually
-    #     # XXX: the 'join' done by _wrap()._sh() function/enclosure is messing what should come next
-    #     assert len(kwargs)==0
-    #     if self._maps:
-    #         args = _map_args(args, self._maps)
-    #         kwargs = _map_kwargs(kwargs, self._maps)
-    #     return self._sh(*args, **kwargs)
         return self._sh(command)
 
     def reset(self):
@@ -105,12 +99,19 @@ class Sh(object):
             """
             Run and return result of 'exec' in 'sh_local' with argument 'args/kwargs'
             """
-            v = [ _map_arg(v, self._maps[tuple]) for v in args ]
-            kv = [ _map_kwarg(k, v, self.maps[dict], self._kwargs_sep)
-                    for k,v in kwargs.items() ]
+            _maps_t = self._maps.get(tuple, None)
+            v = [ _map_arg(v, _maps_t) for v in args ]
+            _maps_d = self._maps.get(dict, None)
+            if _maps_d:
+                kv = [ _map_kwarg(k, v, _maps_d.get(k), self._kwargs_sep)
+                        for k,v in kwargs.items() ]
+            else:
+                kv = [ _map_kwarg(k, v, _maps_t, self._kwargs_sep)
+                        for k,v in kwargs.items() ]
+
+            # 'comm' is effectively the full/command-line to run
             comm = ' '.join(exec+v+kv)
             log.debug(comm)
-            # 'comm' is effectively the full/command-line to run
             return self(comm)
 
         return _sh
@@ -120,24 +121,25 @@ class Sh(object):
         """
         Return list of volumes/mappings currently set
         """
-        #TODO
-        NotImplementedError
+        return self._maps
 
 
 def _map_arg(value, maps):
     from os.path import exists,abspath
-    if exists(value):
+
+    if maps and exists(value):
         _abs = abspath(value)
         for _host, _cont in maps:
             _val = _abs.replace(_host, _cont)
             if _val != _abs:
                 return _val
+
     return value
 
 
-
 def _map_kwarg(key, value, maps, sep='='):
-    return f"{key}{sep}{value}"
+    _val = _map_arg(value, [maps]) if maps else value
+    return f"{key}{sep}{_val}"
 
 
 def _set_sh():
@@ -148,155 +150,73 @@ def _set_sh():
     return bash.bake('--login -c'.split())
 
 
-def _map_args(args, map_paths):
-    """
-    Translate 'args' according to 'map_paths'
-
-    'args' is like:
-    ```
-    ['dummy-arg', '/Volumes/at_host/bla.txt']
-    ```
-    And 'map_paths' (given at 'Sh.set_docker()') is like:
-    ```
-    { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
-    ```.
-    """
-    import re
-
-    log.debug(args)
-    log.debug(map_paths)
-
-    map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
-    assert False
-    _args = []
-    for val in args:
-        for _host, _cont in map_tuples:
-            # use str.replace to substitute wherever '_host' is in the string
-            _val = val.replace(_host, _cont)
-            # re.sub to substitute only when '_host' strats ('^') the string
-            # _val = re.sub(f"^{_host}", _cont, val)
-            if _val != val:
-                break
-        _args.append(_val)
-
-    # maps = map_paths
-    # _args = []
-    # # for arg in args:
-    # #     for _host,_cont in map_paths.values():
-    # #         arg = arg.replace(_host, _cont)
-    # #     _args.append(arg)
-    # # return _args
-    # if isinstance(maps, dict):
-    #     for val in args:
-    #         try:
-    #             # Try for the mapping "{ 'infile': ('/Volumes/at_host', '/mnt/at_container') }"
-    #             _host = maps[key][0]
-    #             _cont = maps[key][1]
-    #         except Exception as err:
-    #             log.error(err)
-    #             # If not -- either because 'key' doesn't exist or value is not a tuple --
-    #             # just pass key:val forward.
-    #             _val = val
-    #         else:
-    #             # Translate path from host URL to container's reference.
-    #             _val = val.replace(_host, _cont)
-    #
-    #         _args.append(_val)
-    #
-    # elif isinstance(maps, (list,tuple)):
-    #     for val in args:
-    #         try:
-    #             _host, _cont = maps
-    #         except Exception as err:
-    #             log.error(err)
-    #             _val = val
-    #         else:
-    #             # Translate path from host URL to container's reference.
-    #             _val = val.replace(_host, _cont)
-    #
-    #         _args.append(_val)
-    #
-    # else:
-    #     # If there is no map defined (for some fucking reason), just map trivially
-    #     # _kw.update(kwargs)
-    #     assert False, "Mapping paths should be defined. This line should never be hit!"
-
-    return _args
-
-
-def _map_kwargs(kwargs, map_paths):
-    """
-    Translate 'kwargs' values according to 'map_paths' mappings
-
-    'kwargs' is something like:
-    ```
-    { 'infile' : '/Volumes/at_host/bla.txt' }
-    ```.
-
-    And 'map_paths' (given at 'Sh.set_docker()') is like:
-    # ```
-    # TODO: implement this format!
-    # { '/Volumes/at_host' : '/mnt/at_container' }
-    # ```
-    # or
-    ```
-    { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
-    ```.
-    The second form is used only when you want to restrict such mapping/translation
-    to a specific command-line argument
-    """
-    log.debug(kwargs)
-    log.debug(map_paths)
-
-    map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
-
-    _kw = {}
-    for key, val in kwargs.items():
-        for _host, _cont in map_tuples:
-            _val = val.replace(_host, _cont)
-            if _val != val:
-                break
-        _kw[key] = _val
-
-    # maps = map_paths
-    # _kw = {}
-    # if isinstance(maps, dict):
-    #     for key, val in kwargs.items():
-    #         try:
-    #             # Try for the mapping "{ 'infile': ('/Volumes/at_host', '/mnt/at_container') }"
-    #             _host = maps[key][0]
-    #             _cont = maps[key][1]
-    #         except Exception as err:
-    #             log.error(err)
-    #             # If not -- either because 'key' doesn't exist or value is not a tuple --
-    #             # just pass key:val forward.
-    #             _val = val
-    #         else:
-    #             # Translate path from host URL to container's reference.
-    #             _val = val.replace(_host, _cont)
-    #
-    #         _kw[key] = _val
-    #
-    # elif isinstance(maps, (list,tuple)):
-    #     for key, val in kwargs.items():
-    #         try:
-    #             _host, _cont = maps
-    #         except Exception as err:
-    #             log.error(err)
-    #             _val = val
-    #         else:
-    #             # Translate path from host URL to container's reference.
-    #             _val = val.replace(_host, _cont)
-    #
-    #         _kw[key] = _val
-    #
-    # else:
-    #     # If there is no map defined (for some fucking reason), just map trivially
-    #     # _kw.update(kwargs)
-    #     assert False, "Mapping paths should be defined. This line should never be hit!"
-
-    return _kw
-
-
-# # Global/Singleton
-# sh = Sh()
+# def _map_args(args, map_paths):
+#     """
+#     Translate 'args' according to 'map_paths'
+#
+#     'args' is like:
+#     ```
+#     ['dummy-arg', '/Volumes/at_host/bla.txt']
+#     ```
+#     And 'map_paths' (given at 'Sh.set_docker()') is like:
+#     ```
+#     { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
+#     ```.
+#     """
+#     import re
+#
+#     log.debug(args)
+#     log.debug(map_paths)
+#
+#     map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
+#     assert False
+#     _args = []
+#     for val in args:
+#         for _host, _cont in map_tuples:
+#             # use str.replace to substitute wherever '_host' is in the string
+#             _val = val.replace(_host, _cont)
+#             # re.sub to substitute only when '_host' strats ('^') the string
+#             # _val = re.sub(f"^{_host}", _cont, val)
+#             if _val != val:
+#                 break
+#         _args.append(_val)
+#
+#     return _args
+#
+#
+# def _map_kwargs(kwargs, map_paths):
+#     """
+#     Translate 'kwargs' values according to 'map_paths' mappings
+#
+#     'kwargs' is something like:
+#     ```
+#     { 'infile' : '/Volumes/at_host/bla.txt' }
+#     ```.
+#
+#     And 'map_paths' (given at 'Sh.set_docker()') is like:
+#     # ```
+#     # TODO: implement this format!
+#     # { '/Volumes/at_host' : '/mnt/at_container' }
+#     # ```
+#     # or
+#     ```
+#     { 'infile': ('/Volumes/at_host', '/mnt/at_container') }
+#     ```.
+#     The second form is used only when you want to restrict such mapping/translation
+#     to a specific command-line argument
+#     """
+#     log.debug(kwargs)
+#     log.debug(map_paths)
+#
+#     map_tuples = map_paths.values() if isinstance(map_paths, dict) else map_paths
+#
+#     _kw = {}
+#     for key, val in kwargs.items():
+#         for _host, _cont in map_tuples:
+#             _val = val.replace(_host, _cont)
+#             if _val != val:
+#                 break
+#         _kw[key] = _val
+#
+#     return _kw
+#
