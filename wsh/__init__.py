@@ -1,24 +1,19 @@
 """
 Wrapper for SH
 """
+import sh
+
 from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
 from . import _log as log
-
 from ._sh import Sh as Wsh
 
-try:
-    from . import _docker as docker
-except:
-    docker = None
-
-def get_handle(container_name:str):
+def init_shell(container:str, mappings=None, name:str=None):
     """
-    Return a shell for 'container_name'
+    Return a shell for 'container'
     """
-    vols = docker.container_volumes(container_name)
-    sh = Wsh()
-    sh.set_docker(container_name, vols)
+    sh = Wsh(name)
+    sh.set_docker(container, mappings, inspect=True)
     return sh
