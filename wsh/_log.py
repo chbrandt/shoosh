@@ -1,8 +1,9 @@
 import logging
 
 # default formatter
-_format = '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s'
-
+# _format = '%(asctime)s - %(name)s - %(levelname)s - %(funcName)s - %(message)s'
+_format = '%(levelname)s [%(name)s|%(module)s|%(funcName)s]: %(message)s'
+# _format = '[{levelname}] [{name}:{module}.{funcName} (l:{lineno})]: {message}'
 # default level
 _level = 'DEBUG'
 
@@ -34,6 +35,9 @@ def set_stream(level=_level, format=_format):
     stream.setLevel(level)
     stream.setFormatter(logging.Formatter(format))
     logger.addHandler(stream)
+
+def set_level(level=_level):
+    return set_stream(level)
 
 def set_logfile(filename, level=_level, format=_format):
     # create ile handler and set level to debug
