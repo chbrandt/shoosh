@@ -137,14 +137,14 @@ def _map_arg(value, maps):
     return value
 
 
-def _map_kwarg_d(key, value, maps, sep='='):
-    _val = _map_arg(value, [maps]) if maps else value
+def _map_kwarg_t(key, value, maps, sep):
+    _val = _map_arg(value, maps)
     return f"{key}{sep}{_val}"
 
 
-def _map_kwarg_t(key, value, maps, sep='='):
-    _val = _map_arg(value, maps) if maps else value
-    return f"{key}{sep}{_val}"
+def _map_kwarg_d(key, value, maps, sep):
+    _maps = maps and [maps]
+    return _map_kwarg_t(key, value, _maps, sep)
 
 
 def _set_sh():
