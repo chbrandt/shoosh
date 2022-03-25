@@ -1,4 +1,4 @@
-# wsh
+# osh
 Wrapper for sh to run Shell commands inside Docker container and handle volume mappings seamlessly.
 
 ## How to
@@ -19,8 +19,8 @@ $ docker run -dt \
 ### 2: Create a handle to container
 Then, we create a handle to the container whit the volume(s) set:
 ```python
->>> import wsh
->>> sh = wsh.init('some_container')
+>>> import osh
+>>> sh = osh.init('some_container')
 ```
 
 ### 3: And execute a command through the handle

@@ -7,15 +7,15 @@ __version__ = get_versions()['version']
 del get_versions
 
 from . import _log as log
-from ._sh import Wsh
+from ._sh import Osh
 
 
 def init(container:str, mappings=None, name:str=None):
     """
     Return a shell for docker 'container' with 'mappings' set
 
-    If no mappings are given, wsh will map all volumes defined for 'container'.
-    You can give a 'name' for this instance of wsh.
+    If no mappings are given, osh will map all volumes defined for 'container'.
+    You can give a 'name' for this instance of osh.
 
     Input:
         container: str
@@ -26,11 +26,11 @@ def init(container:str, mappings=None, name:str=None):
             Dict of command arguments to length-2 tuples
             Ex: {'option': ('/host/path','/container/path')}
         name: str
-            Name for this instance of Wsh (placeholder for planned future)
+            Name for this instance of Osh (placeholder for planned future)
 
     Output:
-        Wsh instance
+        Osh instance
     """
-    sh = Wsh(name)
+    sh = Osh(name)
     sh.set_docker(container, mappings, inspect=True)
     return sh
