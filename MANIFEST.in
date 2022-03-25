@@ -1,2 +1,2 @@
 include versioneer.py
-include osh/_version.py
+include shoosh/_version.py

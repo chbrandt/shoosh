@@ -9,7 +9,7 @@ except:
 KWARGS_SEP = '='
 
 
-class Osh(object):
+class Shoosh(object):
     """
     Class meant to abstract the underlying Shell/OS layer
 
