@@ -8,6 +8,10 @@ __version__ = _version.get_versions()['version']
 from . import _log as log
 from ._sh import Shoosh
 
+try:
+    import _docker as docker
+except:
+    docker = None
 
 def init(container:str, mappings=None, name:str=None):
     """
