@@ -2,9 +2,8 @@
 Wrapper for sh to interface Docker containers seemlessly
 """
  # Stuff from versioneer
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
+from . import _version
+__version__ = _version.get_versions()['version']
 
 from . import _log as log
 from ._sh import Osh
