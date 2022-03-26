@@ -10,7 +10,7 @@ container.
 
 **How it works?**
 * Map container and its volumes (host:container);
-* Wrap a command in a [sh](pypi.org/project/sh);
+* Wrap a command in a [sh](https://pypi.org/project/sh);
 * Execute the command while mapping the volumes.
 
 
