@@ -1,4 +1,4 @@
-<img src='assets/logo.png' />
+<img src='assets/logo.png' style="height:250px"/>
 
 # shoosh
 Execute commands on Docker container while mapping volume paths.
