@@ -102,15 +102,19 @@ class Shoosh(object):
             """
             Run and return result of 'exec' in 'sh_local' with argument 'args/kwargs'
             """
-            _maps_t = self._maps.get(tuple, None)
-            v = [ _map_arg(v, _maps_t) for v in args ]
-            _maps_d = self._maps.get(dict, None)
-            if _maps_d:
-                kv = [ _map_kwarg_d(k, v, _maps_d.get(k), self._kwargs_sep)
-                        for k,v in kwargs.items() ]
+            if self._maps:
+                _maps_t = self._maps.get(tuple, None)
+                v = [ _map_arg(v, _maps_t) for v in args ]
+                _maps_d = self._maps.get(dict, None)
+                if _maps_d:
+                    kv = [ _map_kwarg_d(k, v, _maps_d.get(k), self._kwargs_sep)
+                            for k,v in kwargs.items() ]
+                else:
+                    kv = [ _map_kwarg_t(k, v, _maps_t, self._kwargs_sep)
+                            for k,v in kwargs.items() ]
             else:
-                kv = [ _map_kwarg_t(k, v, _maps_t, self._kwargs_sep)
-                        for k,v in kwargs.items() ]
+                v = [f'{v}' for v in args]
+                kv = [f'{k}={v}' for k,v in kwargs.items()]
 
             # 'comm' is effectively the full/command-line to run
             comm = ' '.join(exec+v+kv)
