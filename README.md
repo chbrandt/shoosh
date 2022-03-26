@@ -1,5 +1,3 @@
-![logo](assets/logo.png)
-
 # shoosh
 
 Execute commands on Docker container while mapping volume paths.
