@@ -1,4 +1,4 @@
-<img src='assets/logo.png' style="height:300px"/>
+![logo](assets/logo.png)
 
 # shoosh
 
