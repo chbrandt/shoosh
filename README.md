@@ -1,5 +1,7 @@
 <img src='assets/logo.png' style="height:300px"/>
+
 # shoosh
+
 Execute commands on Docker container while mapping volume paths.
 
 Portability and abstraction are the two main components guiding the
