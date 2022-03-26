@@ -1,7 +1,20 @@
 # shoosh
-Wrapper for sh to run Shell commands inside Docker container and handle volume mappings seamlessly.
+Execute commands on Docker container mapping the volume paths.
 
-## How to
+Portability and abstraction are the two main components guiding the
+implementation of the library.
+The idea is to run a command _inside_ the container as if it was
+installed in the host system (locally), and also be able to use the
+very same (command) calls either from the host as well as inside the
+container.
+
+**How it works?**
+* Map container and its volumes (host:container);
+* Wrap a command in a [sh](pypi.org/project/sh);
+* Execute the command while mapping the volumes.
+
+
+## How to use
 
 ### 1: Instantiate a container
 First step is to instantiate the (Docker) container we are going to use next.
@@ -11,8 +24,8 @@ meant to manage the containers lifecycle.)
 For example, let's run a simple [alpine](https://hub.docker.com/_/alpine) container mapping local `test/` directory to `/some/path` inside the container:
 ```bash
 $ docker run -dt \
-        --name some_container \
-        -v /tmp/test:/some/path \
+        --name the_container \
+        -v /tmp/host/path:/some/container/path \
         debian
 ```
 
@@ -20,16 +33,26 @@ $ docker run -dt \
 Then, we create a handle to the container whit the volume(s) set:
 ```python
 >>> import shoosh
->>> sh = shoosh.init('some_container')
+>>> sh = shoosh.init('the_container')
 ```
 
-### 3: And execute a command through the handle
-By default, whenever you cite the (host) volume, it translate to the internal path:
+### 3: Wrap a command
+Create a "wrap" around a command in the container:
 ```python
 >>> echo = sh.wrap('echo')
->>> echo("Internal path:", '/tmp/test')
-Internal path: /some/path
 ```
+
+### 4: Run the command, map volumes
+When we run the command, we specify the path as if the command would run
+locally, on the host; Shoosh maps the paths accordingly to abstract the
+container.
+```python
+>>> echo("Map path:", '/tmp/host/path')
+Map path: /some/container/path
+```
+
+## Examples
+
 
 ## Rationale
 The typical use of (Docker) containers is to spin-up a container containing

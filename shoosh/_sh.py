@@ -74,10 +74,13 @@ class Shoosh(object):
             self._sh = docker.bake(container)
             if inspect and not mappings:
                 mappings = docker.volumes(container)
-            assert type(mappings) in (list,tuple,dict)
-            if isinstance(mappings, list):
-                mappings = tuple(mappings)
-            self._maps = {type(mappings): mappings}
+            if mappings:
+                type(mappings) in (list,tuple,dict)
+                if isinstance(mappings, list):
+                    mappings = tuple(mappings)
+                self._maps = {type(mappings): mappings}
+            else:
+                self._maps = {}
         else:
             self._log("Docker not found. Do you have it installed?")
 

@@ -9,7 +9,7 @@ from . import _log as log
 from ._sh import Shoosh
 
 try:
-    import _docker as docker
+    from . import _docker as docker
 except:
     docker = None
 
