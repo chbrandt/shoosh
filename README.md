@@ -1,5 +1,7 @@
+<img src='assets/logo.png' />
+
 # shoosh
-Execute commands on Docker container mapping the volume paths.
+Execute commands on Docker container while mapping volume paths.
 
 Portability and abstraction are the two main components guiding the
 implementation of the library.
