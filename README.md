@@ -59,6 +59,7 @@ Map path: /some/container/path
 
 ## Examples
 
+TBD
 
 ## Rationale
 The typical use of (Docker) containers is to spin-up a container containing
@@ -114,4 +115,4 @@ current environment, re-mapping of paths is not necessary in this case but it
 allow you to move your code from a "host-container" scenario to "container-only"
 -- in a cloud infrastructure -- seamlessly.
 
-All this _seamlessly_ feature is possible because of the [sh](pypi.org/sh) package.
+All this _seamlessly_ feature is possible because of the [sh](https://pypi.org/project/sh) package.
