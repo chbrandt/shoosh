@@ -10,6 +10,7 @@ very same (command) calls either from the host as well as inside the
 container.
 
 **How it works?**
+
 * Map container and its volumes (host:container);
 * Wrap a command in a [sh](https://pypi.org/project/sh);
 * Execute the command while mapping the volumes.
@@ -23,6 +24,7 @@ First step is to instantiate the (Docker) container we are going to use next.
 meant to manage the containers lifecycle.)
 
 For example, let's run a simple [alpine](https://hub.docker.com/_/alpine) container mapping local `test/` directory to `/some/path` inside the container:
+
 ```bash
 $ docker run -dt \
         --name the_container \
@@ -32,6 +34,7 @@ $ docker run -dt \
 
 ### 2: Create a handle to container
 Then, we create a handle to the container whit the volume(s) set:
+
 ```python
 >>> import shoosh
 >>> sh = shoosh.init('the_container')
@@ -39,6 +42,7 @@ Then, we create a handle to the container whit the volume(s) set:
 
 ### 3: Wrap a command
 Create a "wrap" around a command in the container:
+
 ```python
 >>> echo = sh.wrap('echo')
 ```
@@ -47,6 +51,7 @@ Create a "wrap" around a command in the container:
 When we run the command, we specify the path as if the command would run
 locally, on the host; Shoosh maps the paths accordingly to abstract the
 container.
+
 ```python
 >>> echo("Map path:", '/tmp/host/path')
 Map path: /some/container/path
@@ -73,9 +78,10 @@ Consider the following scenario:
 - The data in our host system is stored under `/home/user/data/some_project`;
 - When we instantiate the [osgeo/gdal] image as `some_gdal` container, we mount-bind that path to container's `/data/geo`;
 - Suppose all we want to do it to [convert our data files from GeoTiff to Cloud Optimized GeoTiff(https://gdal.org/drivers/raster/cog.html):
-  ```bash
-  $ gdal_translate /data/geo/raster.tif /data/geo/raster_cog.tif -of COG
-  ```
+
+```bash
+$ gdal_translate /data/geo/raster.tif /data/geo/raster_cog.tif -of COG
+```
 
 Everything works very well if the interaction with the container is decoupled
 from the host system, _i.e._ if we are _executing_ the commands _inside_ the
